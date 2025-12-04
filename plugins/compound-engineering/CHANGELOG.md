@@ -5,6 +5,12 @@ All notable changes to the compound-engineering plugin will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.2] - 2025-12-04
+
+### Added
+
+- **`/work` command** - Added screenshot documentation step for UI changes. Before creating PRs, use Playwright to capture before/after screenshots, upload via 0x0.st (using imgup skill), and include in PR description.
+
 ## [2.9.1] - 2025-12-04
 
 ### Changed
