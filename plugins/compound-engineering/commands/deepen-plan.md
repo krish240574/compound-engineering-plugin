@@ -45,6 +45,8 @@ First, read and parse the plan to identify each major section that can be enhanc
 - [ ] Code examples and file references
 - [ ] Acceptance criteria
 - [ ] Any UI/UX components mentioned
+- [ ] Technologies/frameworks mentioned (Rails, React, Python, TypeScript, etc.)
+- [ ] Domain areas (data models, APIs, UI, security, performance, etc.)
 
 **Create a section manifest:**
 ```
@@ -53,36 +55,150 @@ Section 2: [Title] - [Brief description of what to research]
 ...
 ```
 
-### 2. Launch Parallel Research Agents
+### 2. Discover and Apply Available Skills
 
 <thinking>
-For each major section, spawn a dedicated sub-agent to research improvements. Run all agents in parallel for maximum efficiency.
+Dynamically discover all available skills and match them to plan sections. Don't assume what skills exist - discover them at runtime.
 </thinking>
 
-**For each identified section, launch a parallel Task agent:**
+**Step 1: Discover ALL available skills from ALL sources**
 
-Launch these agents **simultaneously** using Task tool with appropriate subagent_type:
+```bash
+# 1. Project-local skills (highest priority - project-specific)
+ls .claude/skills/
 
-#### Agent Categories by Section Type:
+# 2. User's global skills (~/.claude/)
+ls ~/.claude/skills/
 
-**For Architecture/Technical sections:**
-- Task best-practices-researcher: "Research best practices for [section topic]. Find industry patterns, performance considerations, and common pitfalls."
-- Task framework-docs-researcher: "Find official documentation and examples for [technologies mentioned]."
+# 3. compound-engineering plugin skills
+ls ~/.claude/plugins/cache/*/compound-engineering/*/skills/
 
-**For Implementation/Code sections:**
-- Task pattern-recognition-specialist: "Analyze patterns for [implementation approach]. Find optimal code structures and anti-patterns to avoid."
-- Task performance-oracle: "Research performance implications of [approach]. Find optimization strategies and benchmarks."
+# 4. ALL other installed plugins - check every plugin for skills
+find ~/.claude/plugins/cache -type d -name "skills" 2>/dev/null
 
-**For UI/UX sections:**
-- Task best-practices-researcher: "Research UI/UX best practices for [component type]. Find accessibility standards, responsive patterns, and user experience improvements."
+# 5. Also check installed_plugins.json for all plugin locations
+cat ~/.claude/plugins/installed_plugins.json
+```
 
-**For Data/Models sections:**
-- Task data-integrity-guardian: "Research data modeling best practices for [model type]. Find validation patterns, indexing strategies, and migration safety."
+**Important:** Check EVERY source. Don't assume compound-engineering is the only plugin. Use skills from ANY installed plugin that's relevant.
 
-**For Security-sensitive sections:**
-- Task security-sentinel: "Research security considerations for [feature]. Find OWASP patterns, authentication best practices, and vulnerability prevention."
+**Step 2: For each discovered skill, read its SKILL.md to understand what it does**
 
-### 3. Collect and Synthesize Research
+```bash
+# For each skill directory found, read its documentation
+cat [skill-path]/SKILL.md
+```
+
+**Step 3: Match skills to plan content**
+
+For each skill discovered:
+- Read its SKILL.md description
+- Check if any plan sections match the skill's domain
+- If there's a match, spawn a sub-agent to apply that skill's knowledge
+
+**Step 4: Launch sub-agents for matched skills**
+
+For each matched skill, launch a parallel Task:
+```
+Task general-purpose: "You have access to the [skill-name] skill. Apply its patterns and best practices to analyze [plan section]. Provide:
+- Skill-specific recommendations
+- Patterns from the skill's reference documentation
+- Anti-patterns the skill warns against
+- Concrete code examples following the skill's conventions"
+```
+
+**Run as many skill-based sub-agents as you find matches for. No limit.**
+
+### 3. Launch Per-Section Research Agents
+
+<thinking>
+For each major section in the plan, spawn dedicated sub-agents to research improvements. Use the Explore agent type for open-ended research.
+</thinking>
+
+**For each identified section, launch parallel research:**
+
+```
+Task Explore: "Research best practices, patterns, and real-world examples for: [section topic].
+Find:
+- Industry standards and conventions
+- Performance considerations
+- Common pitfalls and how to avoid them
+- Documentation and tutorials
+Return concrete, actionable recommendations."
+```
+
+**Also use Context7 MCP for framework documentation:**
+
+For any technologies/frameworks mentioned in the plan, query Context7:
+```
+mcp__plugin_compound-engineering_context7__resolve-library-id: Find library ID for [framework]
+mcp__plugin_compound-engineering_context7__query-docs: Query documentation for specific patterns
+```
+
+**Use WebSearch for current best practices:**
+
+Search for recent (2024-2025) articles, blog posts, and documentation on topics in the plan.
+
+### 4. Discover and Run ALL Review Agents
+
+<thinking>
+Dynamically discover every available agent and run them ALL against the plan. Don't filter, don't skip, don't assume relevance. 40+ parallel agents is fine. Use everything available.
+</thinking>
+
+**Step 1: Discover ALL available agents from ALL sources**
+
+```bash
+# 1. Project-local agents (highest priority - project-specific)
+find .claude/agents -name "*.md" 2>/dev/null
+
+# 2. User's global agents (~/.claude/)
+find ~/.claude/agents -name "*.md" 2>/dev/null
+
+# 3. compound-engineering plugin agents (all subdirectories)
+find ~/.claude/plugins/cache/*/compound-engineering/*/agents -name "*.md" 2>/dev/null
+
+# 4. ALL other installed plugins - check every plugin for agents
+find ~/.claude/plugins/cache -path "*/agents/*.md" 2>/dev/null
+
+# 5. Check installed_plugins.json to find all plugin locations
+cat ~/.claude/plugins/installed_plugins.json
+
+# 6. For local plugins (isLocal: true), check their source directories
+# Parse installed_plugins.json and find local plugin paths
+```
+
+**Important:** Check EVERY source. Include agents from:
+- Project `.claude/agents/`
+- User's `~/.claude/agents/`
+- compound-engineering plugin
+- ALL other installed plugins (agent-sdk-dev, frontend-design, etc.)
+- Any local plugins
+
+**Step 2: For each discovered agent, read its description**
+
+Read the first few lines of each agent file to understand what it reviews/analyzes.
+
+**Step 3: Launch ALL agents in parallel**
+
+For EVERY agent discovered, launch a Task in parallel:
+
+```
+Task [agent-name]: "Review this plan using your expertise. Apply all your checks and patterns. Plan content: [full plan content]"
+```
+
+**CRITICAL RULES:**
+- Do NOT filter agents by "relevance" - run them ALL
+- Do NOT skip agents because they "might not apply" - let them decide
+- Launch ALL agents in a SINGLE message with multiple Task tool calls
+- 20, 30, 40 parallel agents is fine - use everything
+- Each agent may catch something others miss
+- The goal is MAXIMUM coverage, not efficiency
+
+**Step 4: Also discover and run research agents**
+
+Research agents (like `best-practices-researcher`, `framework-docs-researcher`, `git-history-analyzer`, `repo-research-analyst`) should also be run for relevant plan sections.
+
+### 5. Collect and Synthesize Research
 
 <thinking>
 Wait for all parallel agents to complete, then synthesize their findings into actionable enhancements for each section.
